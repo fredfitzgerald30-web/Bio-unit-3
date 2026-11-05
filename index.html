@@ -128,6 +128,7 @@ svg .nm.ok{fill:var(--good)} svg .nm.no{fill:var(--bad)}
 .seg3 button.ok{border-color:var(--good);background:var(--good-soft)} .seg3 button.no{border-color:var(--bad);background:var(--bad-soft)}
 .beaker{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .beaker svg{width:150px;height:auto;flex:none}
+.beaker svg.mem{width:100%;border-radius:10px;border:1px solid var(--line)}
 
 ul.check{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 ul.check label{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:var(--sunk)}
@@ -175,6 +176,7 @@ details.sheet[open] summary::after{content:"Hide"}
     <button role="tab" id="tab-vocab" data-tab="vocab" aria-selected="false">Vocab</button>
     <button role="tab" id="tab-label" data-tab="label" aria-selected="false">Label the cell</button>
     <button role="tab" id="tab-cmp" data-tab="cmp" aria-selected="false">Compare cells</button>
+    <button role="tab" id="tab-tr" data-tab="tr" aria-selected="false">Transport</button>
     <button role="tab" id="tab-osm" data-tab="osm" aria-selected="false">Osmosis</button>
     <button role="tab" id="tab-exp" data-tab="exp" aria-selected="false">Explain it</button>
   </nav>
@@ -186,6 +188,7 @@ details.sheet[open] summary::after{content:"Hide"}
   <section id="pane-vocab" role="tabpanel" aria-labelledby="tab-vocab" hidden><div class="bar"><div class="chips" id="vocab-filter"></div><div class="chips" id="vocab-dir"></div></div><div id="vocab-card"></div></section>
   <section id="pane-label" role="tabpanel" aria-labelledby="tab-label" hidden><div class="bar"><div class="chips" id="label-filter"></div><span class="count" id="label-count"></span></div><div id="label-card"></div></section>
   <section id="pane-cmp" role="tabpanel" aria-labelledby="tab-cmp" hidden><div class="bar"><span class="count" id="cmp-count"></span></div><div id="cmp-card"></div></section>
+  <section id="pane-tr" role="tabpanel" aria-labelledby="tab-tr" hidden><div class="bar"><span class="count" id="tr-count"></span></div><div id="tr-card"></div></section>
   <section id="pane-osm" role="tabpanel" aria-labelledby="tab-osm" hidden><div class="bar"><span class="count" id="osm-count"></span></div><div id="osm-card"></div></section>
   <section id="pane-exp" role="tabpanel" aria-labelledby="tab-exp" hidden><div class="bar"><div class="chips" id="exp-chips"></div></div><div id="exp-card"></div></section>
 </main>
@@ -241,6 +244,10 @@ const TERMS=[
  ['Osmosis','The diffusion of water through a selectively permeable membrane. Requires no energy.',[],'mem'],
  ['Facilitated Diffusion','A membrane protein helps a substance diffuse across the membrane, still from high to low concentration. Requires no energy.',[],'mem'],
  ['Active Transport','Proteins pump material from an area of low concentration to an area of high concentration. Requires energy.',[],'mem'],
+ ['Concentration gradient','The difference in how much of a substance is in one area compared to another. Things naturally move down the gradient, from high to low.',['gradient','concentration gradients'],'mem'],
+ ['Equilibrium','When a substance is spread out evenly, so the concentration is the same everywhere. Molecules still move, but there is no net change.',[],'mem'],
+ ['Channel protein','A protein in the membrane that forms a tunnel for one specific substance to pass through (used in facilitated diffusion).',['channel proteins','protein channel','transport protein'],'mem'],
+ ['Protein pump','A membrane protein that uses energy to push a substance from low concentration to high concentration (used in active transport).',['pump','protein pumps','sodium potassium pump'],'mem'],
  ['Isotonic','The solute concentration is the same inside and outside the cell, so there is no net movement of water. The cell stays the same.',[],'mem'],
  ['Hypotonic','The solution has less solute than the cell, so water moves into the cell. Animal cells swell and can burst.',[],'mem'],
  ['Hypertonic','The solution has more solute than the cell, so water moves out of the cell. The cell shrinks, and plant vacuoles collapse.',[],'mem'],
@@ -268,6 +275,15 @@ const FIXES={
 };
 $('#sheet-body').innerHTML=[['Cells & organisms','life'],['Organelles & structures','org'],['Membrane & transport','mem']].map(([h,g])=>`<h4>${h}</h4>`+TERMS.filter(x=>x.g===g).map(x=>`<div class="def"><b>${esc(x.t)}</b><span>${esc(x.d)}</span>${FIXES[x.t]?`<span class="fixed">Note fix: ${esc(FIXES[x.t])}</span>`:''}</div>`).join('')).join('')+
 `<h4>Cell theory</h4><div class="def"><b>1</b><span>All living things are made of cells.</span></div><div class="def"><b>2</b><span>Cells are the basic units of structure and function in living things.</span></div><div class="def"><b>3</b><span>New cells are produced from existing cells.</span></div>
+<h4>Movement through the membrane</h4>
+<div style="overflow-x:auto"><table class="cmp" style="font-size:14px"><thead><tr><th>Type</th><th>Direction</th><th>Energy?</th><th>Protein?</th><th>Example</th></tr></thead><tbody>
+<tr><td>Diffusion</td><td>High \u2192 low</td><td>No</td><td>No</td><td>O\u2082 and CO\u2082 crossing the membrane</td></tr>
+<tr><td>Osmosis</td><td>High water \u2192 low water</td><td>No</td><td>No</td><td>Water moving into a cell</td></tr>
+<tr><td>Facilitated diffusion</td><td>High \u2192 low</td><td>No</td><td>Yes (channel)</td><td>Glucose or ions through a channel</td></tr>
+<tr><td>Active transport</td><td>Low \u2192 high</td><td>Yes (ATP)</td><td>Yes (pump)</td><td>Pumping K\u207a into a nerve cell</td></tr></tbody></table></div>
+<div class="def"><b>Passive vs. active</b><span>The first three are passive transport: no energy, always moving down the concentration gradient. Active transport is the only one that goes against the gradient, so it\u2019s the only one that needs energy.</span></div>
+<div class="def"><b>Who needs help?</b><span>Small molecules like O\u2082 and CO\u2082 slip right through the bilayer. Big molecules (glucose) and charged ions (Na\u207a, K\u207a) are blocked by the hydrophobic tails in the middle, so they need a protein.</span></div>
+<div class="def"><b>Equilibrium</b><span>Diffusion keeps going until the concentration is equal on both sides. Molecules still move after that, but equally both ways.</span></div>
 <h4>Levels of organization</h4><div class="def"><b>Order</b><span>Cells → tissues → organs → organ systems → organism</span></div>`;
 
 /* ---------- generic engine (multiple choice + typed) ---------- */
@@ -325,6 +341,14 @@ const TRANSPORT=[
  ['Food coloring spreads through a glass of water.','Diffusion'],
  ['A protein pump moves molecules from low concentration to high concentration.','Active Transport'],
  ['Carbon dioxide leaves a cell where there is a lot of it and moves out to where there is little.','Diffusion'],
+ ['A slug shrivels up after salt is poured on it.','Osmosis'],
+ ['Nerve cells use energy to keep more potassium inside the cell than outside.','Active Transport'],
+ ['Amino acids move into a cell through a carrier protein, from high to low concentration, without energy.','Facilitated Diffusion'],
+ ['A drop of dye spreads out in a glass until the color is even.','Diffusion'],
+ ['Grocery stores spray vegetables with water to keep them crisp.','Osmosis'],
+ ['Intestine cells use protein pumps to absorb glucose even when there is more glucose inside the cell.','Active Transport'],
+ ['Chloride ions pass through a protein channel down their concentration gradient.','Facilitated Diffusion'],
+ ['Oxygen moves out of a leaf cell where photosynthesis made a lot of it.','Diffusion'],
 ];
 const TRANS_WHY={'Diffusion':'High to low concentration, no energy, no protein needed.','Osmosis':'It’s water moving across a membrane.','Facilitated Diffusion':'High to low, no energy, but it goes through a protein.','Active Transport':'Low to high concentration, so it needs energy (and a protein pump).'};
 const CONCEPTS=[
@@ -338,6 +362,14 @@ const CONCEPTS=[
  ['Which statement about prokaryotes is true?','They have ribosomes but no nucleus',['They have a nucleus but no ribosomes','They have mitochondria','They are always multicellular']],
  ['What does "selectively permeable" mean?','It lets some substances through but not others',['It lets everything through','It lets nothing through','It only lets water through']],
  ['Which type of transport needs energy?','Active transport',['Diffusion','Osmosis','Facilitated diffusion']],
+ ['Which molecules can pass straight through the phospholipid bilayer without help?','Small molecules like oxygen and carbon dioxide',['Glucose','Charged ions like Na\u207a','Large proteins']],
+ ['Why can\u2019t ions pass straight through the bilayer?','They are charged, and the hydrophobic tails block them',['They are too small','They are hydrophilic like the tails','They only move by active transport']],
+ ['What happens when a substance reaches equilibrium?','Molecules keep moving, but there is no net change',['All movement stops','Everything moves into the cell','The membrane closes']],
+ ['Moving a substance from high to low concentration is moving\u2026','down (with) the concentration gradient',['against the concentration gradient','by active transport only','toward equilibrium in reverse']],
+ ['How is facilitated diffusion different from simple diffusion?','It uses a membrane protein',['It needs energy','It goes from low to high','It only moves water']],
+ ['How is active transport different from facilitated diffusion?','It needs energy and moves low to high',['It uses a protein','It moves high to low','It doesn\u2019t use the membrane']],
+ ['Each protein channel usually lets\u2026','one type of substance through',['every substance through','only water through','nothing through without energy']],
+ ['Where does the energy for active transport come from?','ATP made by the mitochondria',['Sunlight hitting the membrane','The nucleolus','The cell wall']],
  ['Cell specialization means…','different types of cells have different jobs',['every cell does every job','cells can only divide once','cells all look the same']],
  ['In a multicellular organism, the cells are…','interdependent: they can’t survive alone',['each able to live on their own','all exactly the same','each a separate organism']],
 ];
@@ -554,6 +586,44 @@ function renderOsm(){const s=O.s,el=$('#osm-card'),done=O.done;$('#osm-count').t
     $('#o-check').onclick=()=>{O.done=true;const ok=['tone','water','cell'].every(k=>O.pick[k]===s.ans[k]);O.total++;if(ok)O.right++;score(ok);renderOsm();};}
   else{$('#o-next').onclick=newOsm;$('#o-next').focus();}}
 
+/* ---------- TRANSPORT (generated) ---------- */
+const MOLS=[{n:'oxygen (O₂)',k:'small'},{n:'carbon dioxide (CO₂)',k:'small'},{n:'water',k:'water'},{n:'glucose',k:'big'},{n:'sodium ions (Na⁺)',k:'big'},{n:'potassium ions (K⁺)',k:'big'},{n:'amino acids',k:'big'},{n:'calcium ions (Ca²⁺)',k:'big'},{n:'chloride ions (Cl⁻)',k:'big'}];
+function trScenario(){
+  const m=pick(MOLS),dir=pick(['in','out']),withG=m.k==='big'?Math.random()<.5:true;
+  const hi=ri(12,18),lo=ri(3,6);
+  const src=withG?hi:lo,dst=withG?lo:hi;
+  const outside=dir==='in'?src:dst,inside=dir==='in'?dst:src;
+  const type=m.k==='small'?'Diffusion':m.k==='water'?'Osmosis':withG?'Facilitated Diffusion':'Active Transport';
+  const ans={grad:withG?'With the gradient (high → low)':'Against the gradient (low → high)',energy:withG?'No':'Yes',protein:m.k==='big'?'Yes':'No',type};
+  const where=dir==='in'?'into':'out of';
+  const reasonP=m.k==='small'?'It’s small, so it slips right between the phospholipids. No protein needed.':m.k==='water'?'Water crosses the membrane on its own. Water moving across a membrane is osmosis.':`${m.n.replace(/ \(.*/,'').replace(/^./,c=>c.toUpperCase())} ${/ions|acids/.test(m.n)?'are':'is'} ${/ions/.test(m.n)?'charged':'too big'}, so the hydrophobic tails block ${/ions|acids/.test(m.n)?'them':'it'}. ${/ions|acids/.test(m.n)?'They need':'It needs'} a protein.`;
+  const reasonG=withG?`There’s more ${m.n.replace(/ \(.*/,'')} on the ${dir==='in'?'outside':'inside'} (${src}) than the ${dir==='in'?'inside':'outside'} (${dst}), so it’s moving high → low. That needs no energy.`:`There’s already more on the ${dir==='in'?'inside':'outside'} (${dst}) than the ${dir==='in'?'outside':'inside'} (${src}), so it’s moving low → high. Going against the gradient takes energy and a protein pump.`;
+  return{m,dir,outside,inside,ans,txt:`The cell moves ${m.n} ${where} the cell.`,why:`${reasonG} ${reasonP} So this is <b>${type.toLowerCase()}</b>.`};
+}
+function membraneSVG(s){
+  const dots=(n,y0,y1)=>Array.from({length:n},()=>`<circle cx="${ri(14,250)}" cy="${ri(y0,y1)}" r="3.2" fill="var(--lysoS)"/>`).join('');
+  let bil='';for(let x=6;x<=294;x+=10){bil+=`<line x1="${x-1.5}" y1="90" x2="${x-1.5}" y2="99" stroke="var(--wallS)" stroke-width="1.3"/><line x1="${x+1.5}" y1="90" x2="${x+1.5}" y2="99" stroke="var(--wallS)" stroke-width="1.3"/><line x1="${x-1.5}" y1="101" x2="${x-1.5}" y2="110" stroke="var(--wallS)" stroke-width="1.3"/><line x1="${x+1.5}" y1="101" x2="${x+1.5}" y2="110" stroke="var(--wallS)" stroke-width="1.3"/><circle cx="${x}" cy="86" r="4.5" fill="var(--vacS)"/><circle cx="${x}" cy="114" r="4.5" fill="var(--vacS)"/>`;}
+  const ay1=s.dir==='in'?40:160,ay2=s.dir==='in'?160:40;
+  return `<svg class="mem" viewBox="0 0 300 200" role="img" aria-label="Membrane with ${s.outside} particles outside and ${s.inside} inside"><rect x="0" y="0" width="300" height="80" fill="var(--vac)" opacity=".45"/><rect x="0" y="120" width="300" height="80" fill="var(--cyto)"/>${bil}${dots(s.outside,8,72)}${dots(s.inside,128,192)}
+    <text x="6" y="14" font-size="11" font-weight="700" fill="var(--muted)" font-family="var(--mono)">OUTSIDE · ${s.outside}</text><text x="6" y="196" font-size="11" font-weight="700" fill="var(--muted)" font-family="var(--mono)">INSIDE · ${s.inside}</text>
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>
+    <line x1="276" y1="${ay1}" x2="276" y2="${ay2}" stroke="var(--accent)" stroke-width="4" marker-end="url(#ah)"/></svg>`;
+}
+const TR={s:null,pick:{},done:false,right:0,total:0};
+function newTr(){TR.s=trScenario();TR.pick={};TR.done=false;renderTr();}
+function renderTr(){const s=TR.s,el=$('#tr-card'),done=TR.done;$('#tr-count').textContent=`${TR.right} / ${TR.total} correct`;
+  const qs=[['grad','It’s moving…',['With the gradient (high → low)','Against the gradient (low → high)']],['energy','Does it need energy?',['Yes','No']],['protein','Does it need a membrane protein?',['Yes','No']],['type','Which type of transport is it?',['Diffusion','Osmosis','Facilitated Diffusion','Active Transport']]];
+  const allOk=qs.every(([k])=>TR.pick[k]===s.ans[k]);
+  el.innerHTML=`<div class="card"><p class="label">Movement through the membrane</p><div class="beaker" style="align-items:flex-start"><div style="flex:1 1 260px;max-width:360px">${membraneSVG(s)}</div><p class="prompt" style="flex:1;min-width:200px">${esc(s.txt)}<br><span class="tip">The dots are ${esc(s.m.n.replace(/ \(.*/,''))}. The arrow shows which way it’s moving.</span></p></div>
+    <div class="seg3">${qs.map(([k,q,opts])=>`<div class="q"><b>${q}</b><div class="opts">${opts.map(o=>{let cls='';if(done)cls=o===s.ans[k]?'ok':o===TR.pick[k]?'no':'';return `<button data-k="${k}" data-o="${esc(o)}" aria-pressed="${TR.pick[k]===o}" class="${cls}" ${done?'disabled':''}>${esc(o)}</button>`;}).join('')}</div></div>`).join('')}</div>
+    ${done?`<div class="fb ${allOk?'ok':'no'}"><strong>${allOk?'All four correct.':'Not quite.'}</strong><p>${s.why}</p></div>`:''}
+    <div class="row">${done?'<button class="btn primary" id="tr-next">Next scenario</button>':`<button class="btn primary" id="tr-check" ${Object.keys(TR.pick).length<4?'disabled':''}>Check</button>`}</div></div>`;
+  if(!done){el.querySelectorAll('.seg3 button').forEach(b=>b.onclick=()=>{TR.pick[b.dataset.k]=b.dataset.o;renderTr();});
+    $('#tr-check').onclick=()=>{TR.done=true;TR.total++;if(allOkNow())TR.right++;score(allOkNow());renderTr();};}
+  else{$('#tr-next').onclick=newTr;$('#tr-next').focus();}
+  function allOkNow(){return qs.every(([k])=>TR.pick[k]===s.ans[k]);}
+}
+
 /* ---------- EXPLAIN IT (objectives) ---------- */
 const EXP=[
  {id:'theory',t:'Cell theory',q:'List the three parts of the cell theory.',pts:[
@@ -598,6 +668,20 @@ const EXP=[
   ['It has DNA or RNA.',['dna','rna']],
   ['It needs a host cell to copy itself.',['host']],
   ['It’s even simpler than a bacterial cell (not made of cells).',['simple','not a cell','not made of cell','no cell']]]},
+ {id:'passive',t:'Passive vs. active',q:'Compare passive transport and active transport. Give an example of each.',pts:[
+  ['Passive transport needs no energy.',['passive','no energy']],
+  ['Passive moves substances from high to low concentration (with the gradient).',['high to low','with the gradient','down the']],
+  ['Diffusion, osmosis, and facilitated diffusion are passive.',['diffusion','osmosis','facilitated']],
+  ['Active transport needs energy (ATP).',['energy','atp']],
+  ['Active moves substances from low to high (against the gradient).',['low to high','against']],
+  ['Active transport uses protein pumps.',['pump']]]},
+ {id:'why',t:'Why proteins?',q:'Why can oxygen pass straight through the cell membrane, while glucose and ions need help from proteins?',pts:[
+  ['Oxygen and carbon dioxide are small, so they slip between the phospholipids.',['small','tiny']],
+  ['The middle of the bilayer is hydrophobic (it\u2019s made of the tails).',['hydrophobic','tail','water hating']],
+  ['Glucose is too big to fit through on its own.',['big','large']],
+  ['Ions are charged, so the hydrophobic tails block them.',['charge']],
+  ['Channel or carrier proteins give them a path (facilitated diffusion).',['channel','carrier','facilitated']],
+  ['To move them against the gradient, the cell uses a protein pump and energy (active transport).',['pump','energy','active']]]},
  {id:'tonic',t:'Hypo vs. hypertonic',q:'Explain what happens to an animal cell and a plant cell in a hypotonic solution and in a hypertonic solution.',pts:[
   ['Hypotonic: less solute outside, so water moves into the cell.',['hypotonic','into','in to','moves in']],
   ['Animal cells in hypotonic solution swell and can burst.',['burst','swell','lyse']],
@@ -625,12 +709,12 @@ function renderExp(){const e=EXP.find(x=>x.id===expCur),el=$('#exp-card');
   }}
 
 /* ---------- tabs + boot ---------- */
-const TABS=['mc','vocab','label','cmp','osm','exp'];
+const TABS=['mc','vocab','label','cmp','tr','osm','exp'];
 function showTab(t){TABS.forEach(x=>{$('#pane-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t);});store.set('tab',t);
   const f=document.querySelector('#pane-'+t+' input[type=text]:not([readonly]),#pane-'+t+' textarea');if(f)f.focus();}
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;if(!$('#pane-mc').hidden)MC.key(e);});
-MC.start();buildVocab();newLabel();newCompare();newOsm();renderExpChips();renderExp();
+MC.start();buildVocab();newLabel();newCompare();newTr();newOsm();renderExpChips();renderExp();
 const t0=store.get('tab','mc');showTab(TABS.includes(t0)?t0:'mc');
 </script>
 </body>
