@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cell Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+html{color-scheme:light}body{margin:0}img{max-width:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Layout: one study column; header with a cell mark and session tally; six recall modes as tabs; SVG cell diagrams use organelle color tokens */
+:root{
+  --bg:#EEF2EF; --surface:#FFFFFF; --sunk:#F5F8F6; --ink:#16211C; --muted:#56655D; --line:#D3DCD6;
+  --accent:#1E7A55; --accent-soft:#DDEFE5; --accent-ink:#FFFFFF;
+  --good:#22713A; --good-soft:#E1F1E5; --bad:#B42318; --bad-soft:#FBE4E1; --warn:#9A6700; --warn-soft:#F7EDD3;
+  --cyto:#F2F8EF; --memb:#2F7A4F; --nuc:#E7DFF6; --nucS:#6B4FB0; --mito:#FBE1CD; --mitoS:#C2621F;
+  --chl:#CDEBC4; --chlS:#2E8B3A; --golgi:#1F8A8A; --er:#3A6FB8; --lyso:#F6CBD3; --lysoS:#C0394F;
+  --vac:#DCEEF9; --vacS:#4A90B8; --wall:#C9BB82; --wallS:#8A7A3E; --ribo:#2B2F2D; --cytosk:#8E9A93;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue","Segoe UI",Roboto,sans-serif;
+  --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1412; --surface:#171E1B; --sunk:#121815; --ink:#E4ECE7; --muted:#97A69E; --line:#29352F;
+  --accent:#6CC796; --accent-soft:#183326; --accent-ink:#0A1A12;
+  --good:#63C27A; --good-soft:#163222; --bad:#F2776C; --bad-soft:#3D1C1A; --warn:#E3B54B; --warn-soft:#3A2F14;
+  --cyto:#18241D; --memb:#6CC08E; --nuc:#2C2443; --nucS:#A68BEA; --mito:#46301F; --mitoS:#F09A5C;
+  --chl:#21402A; --chlS:#6FCB7E; --golgi:#5CC9C9; --er:#7FA8E8; --lyso:#47222A; --lysoS:#F07B8E;
+  --vac:#1B3345; --vacS:#7CB8DD; --wall:#4A4326; --wallS:#BBA862; --ribo:#D7DED9; --cytosk:#6F7D75; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1412; --surface:#171E1B; --sunk:#121815; --ink:#E4ECE7; --muted:#97A69E; --line:#29352F;
+  --accent:#6CC796; --accent-soft:#183326; --accent-ink:#0A1A12;
+  --good:#63C27A; --good-soft:#163222; --bad:#F2776C; --bad-soft:#3D1C1A; --warn:#E3B54B; --warn-soft:#3A2F14;
+  --cyto:#18241D; --memb:#6CC08E; --nuc:#2C2443; --nucS:#A68BEA; --mito:#46301F; --mitoS:#F09A5C;
+  --chl:#21402A; --chlS:#6FCB7E; --golgi:#5CC9C9; --er:#7FA8E8; --lyso:#47222A; --lysoS:#F07B8E;
+  --vac:#1B3345; --vacS:#7CB8DD; --wall:#4A4326; --wallS:#BBA862; --ribo:#D7DED9; --cytosk:#6F7D75; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:780px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{padding-block:28px 18px}
+.head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+.brand{display:flex;gap:14px;align-items:center;min-width:0}
+.brand svg{flex:none;width:50px;height:50px}
+.eyebrow{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{margin:2px 0 0;font-family:var(--display);font-weight:800;letter-spacing:-.025em;font-size:clamp(28px,6vw,38px);line-height:1.05}
+.tally{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right}
+.tally b{display:block;font-size:26px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+
+nav.tabs{display:flex;gap:4px;padding:4px;background:var(--sunk);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+nav.tabs button{flex:1 0 auto;border:0;background:transparent;color:var(--muted);font:600 15px var(--body);padding:10px 14px;border-radius:9px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+main{padding-block:16px 48px;display:grid;gap:14px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px var(--body);padding:6px 12px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.count{font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px clamp(16px,4vw,28px);display:grid;gap:14px;min-width:0}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0}
+.prompt{margin:0;font-size:clamp(19px,3.4vw,23px);line-height:1.4;font-weight:600;text-wrap:pretty}
+.prompt.term{font-family:var(--display);font-weight:800;letter-spacing:-.02em;font-size:clamp(28px,5.5vw,36px)}
+input[type=text],textarea{width:100%;font:inherit;color:var(--ink);background:var(--sunk);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:130px;resize:vertical;line-height:1.45}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+input.ok{border-color:var(--good);background:var(--good-soft)} input.no{border-color:var(--bad);background:var(--bad-soft)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--body);padding:9px 16px;border-radius:10px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.good{border-color:var(--good);color:var(--good)} .btn.bad{border-color:var(--bad);color:var(--bad)} .btn.mid{border-color:var(--warn);color:var(--warn)}
+.btn.ghost{border-color:transparent;color:var(--muted);padding-inline:8px}
+button:focus-visible,.chip:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.kbd{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tip{font-size:14px;color:var(--muted);margin:0}
+.big{font-family:var(--display);font-weight:800;letter-spacing:-.03em;font-size:54px;line-height:1;margin:0}
+.missed{display:flex;flex-wrap:wrap;gap:6px}
+.missed span{background:var(--bad-soft);color:var(--bad);border-radius:6px;padding:3px 9px;font-size:14px;font-weight:600}
+
+.mc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:480px){.mc{grid-template-columns:minmax(0,1fr)}}
+.opt{display:flex;gap:10px;align-items:center;text-align:left;border:1.5px solid var(--line);background:var(--sunk);color:var(--ink);font:600 15px var(--body);padding:11px 13px;border-radius:10px;cursor:pointer;min-width:0}
+.opt span:last-child{min-width:0;overflow-wrap:anywhere}
+.opt:hover:not([disabled]){border-color:var(--accent);background:var(--accent-soft)}
+.opt .k{flex:none;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font:600 12px var(--mono);color:var(--muted);border:1px solid var(--line);background:var(--surface)}
+.opt.ok{border-color:var(--good);background:var(--good-soft)} .opt.no{border-color:var(--bad);background:var(--bad-soft)} .opt.dim{opacity:.55}
+.opt[disabled]{cursor:default}
+
+.fb{border-radius:10px;padding:12px 14px;display:grid;gap:5px}
+.fb.ok{background:var(--good-soft)} .fb.no{background:var(--bad-soft)} .fb.info{background:var(--accent-soft)} .fb.acc{background:var(--warn-soft)}
+.fb strong{font-size:15px}
+.fb.ok strong{color:var(--good)} .fb.no strong{color:var(--bad)} .fb.info strong{color:var(--accent)} .fb.acc strong{color:var(--warn)}
+.fb p{margin:0}
+.answer{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:-.01em}
+
+.diagram{background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:6px;overflow-x:auto}
+.diagram svg{width:100%;min-width:520px;height:auto;display:block}
+svg .badge circle{fill:var(--surface);stroke:var(--accent);stroke-width:2}
+svg .badge text{fill:var(--ink);font:700 13px var(--mono)}
+svg .badge.ok circle{fill:var(--good-soft);stroke:var(--good)} svg .badge.no circle{fill:var(--bad-soft);stroke:var(--bad)}
+svg .lead{stroke:var(--muted);stroke-width:1.2}
+svg .pin{fill:var(--ink)}
+svg .nm{font:600 11px var(--body)}
+svg .nm.ok{fill:var(--good)} svg .nm.no{fill:var(--bad)}
+.lblgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}
+@media (max-width:480px){.lblgrid{grid-template-columns:minmax(0,1fr)}}
+.lbl{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center}
+.lbl b{font-family:var(--mono);text-align:right;color:var(--accent)}
+.lbl .fix{grid-column:2;font-size:13px;font-weight:700;color:var(--bad)}
+
+.cmp{width:100%;border-collapse:collapse}
+.cmp th,.cmp td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+.cmp th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.cmp td:first-child,.cmp th:first-child{text-align:left;font-weight:600}
+.cmp td.note{grid-column:1/-1}
+.tg{width:44px;height:36px;border-radius:9px;border:1.5px solid var(--line);background:var(--sunk);color:var(--muted);font:700 16px var(--body);cursor:pointer}
+.tg[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tg.ok{box-shadow:0 0 0 2.5px var(--good)} .tg.no{box-shadow:0 0 0 2.5px var(--bad)}
+.cmpnote{font-size:13px;color:var(--muted);text-align:left!important;font-weight:400!important;padding-top:0!important}
+
+.seg3{display:grid;gap:10px}
+.seg3 .q{display:grid;gap:6px}
+.seg3 .q b{font-size:15px}
+.seg3 .opts{display:flex;flex-wrap:wrap;gap:6px}
+.seg3 button{border:1.5px solid var(--line);background:var(--sunk);color:var(--ink);font:600 15px var(--body);padding:8px 13px;border-radius:9px;cursor:pointer}
+.seg3 button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.seg3 button.ok{border-color:var(--good);background:var(--good-soft)} .seg3 button.no{border-color:var(--bad);background:var(--bad-soft)}
+.beaker{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.beaker svg{width:150px;height:auto;flex:none}
+
+ul.check{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+ul.check label{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:var(--sunk)}
+ul.check input{margin-top:4px;accent-color:var(--accent);width:17px;height:17px;flex:none}
+ul.check label.on{border-color:var(--good);background:var(--good-soft)}
+.auto{font-family:var(--mono);font-size:11px;color:var(--good);margin-left:auto;white-space:nowrap;padding-left:8px}
+
+details.sheet{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+details.sheet summary{cursor:pointer;padding:14px 18px;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.sheet summary::-webkit-details-marker{display:none}
+details.sheet summary::after{content:"Show";font-family:var(--mono);font-size:12px;color:var(--accent)}
+details.sheet[open] summary::after{content:"Hide"}
+.sheet-body{border-top:1px solid var(--line);padding:4px clamp(14px,3vw,22px) 12px}
+.sheet-body h4{margin:16px 0 4px;font-size:13px;font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}
+.def{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr);gap:4px 14px;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.def b{font-weight:700}
+.def .fixed{grid-column:1/-1;font-size:13px;color:var(--warn)}
+@media (max-width:480px){.def{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:no-preference){.fb{animation:pop .18s ease-out}@keyframes pop{from{transform:translateY(3px);opacity:.4}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap head">
+    <div class="brand">
+      <svg viewBox="0 0 50 50" aria-hidden="true">
+        <ellipse cx="25" cy="25" rx="22" ry="18" fill="var(--cyto)" stroke="var(--memb)" stroke-width="2.5"/>
+        <circle cx="21" cy="24" r="8" fill="var(--nuc)" stroke="var(--nucS)" stroke-width="1.6"/>
+        <circle cx="19.5" cy="23" r="2.6" fill="var(--nucS)"/>
+        <ellipse cx="36" cy="18" rx="5" ry="2.6" fill="var(--mito)" stroke="var(--mitoS)" stroke-width="1.2" transform="rotate(-20 36 18)"/>
+        <path d="M31 30q4-2.5 8 0M31.5 33q3.5-2 7 0" stroke="var(--golgi)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <p class="eyebrow">Biology · Cell structure &amp; function</p>
+        <h1>Cell Lab</h1>
+      </div>
+    </div>
+    <div class="tally"><b id="tally">0 / 0</b>correct this session</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" role="tablist" aria-label="Study modes">
+    <button role="tab" id="tab-mc" data-tab="mc" aria-selected="true">Multiple choice</button>
+    <button role="tab" id="tab-vocab" data-tab="vocab" aria-selected="false">Vocab</button>
+    <button role="tab" id="tab-label" data-tab="label" aria-selected="false">Label the cell</button>
+    <button role="tab" id="tab-cmp" data-tab="cmp" aria-selected="false">Compare cells</button>
+    <button role="tab" id="tab-osm" data-tab="osm" aria-selected="false">Osmosis</button>
+    <button role="tab" id="tab-exp" data-tab="exp" aria-selected="false">Explain it</button>
+  </nav>
+</div>
+
+<main class="wrap">
+  <details class="sheet"><summary>My notes</summary><div class="sheet-body" id="sheet-body"></div></details>
+  <section id="pane-mc" role="tabpanel" aria-labelledby="tab-mc"><div class="bar"><div class="chips" id="mc-filter"></div><span class="count" id="mc-count"></span></div><div id="mc-card"></div></section>
+  <section id="pane-vocab" role="tabpanel" aria-labelledby="tab-vocab" hidden><div class="bar"><div class="chips" id="vocab-filter"></div><div class="chips" id="vocab-dir"></div></div><div id="vocab-card"></div></section>
+  <section id="pane-label" role="tabpanel" aria-labelledby="tab-label" hidden><div class="bar"><div class="chips" id="label-filter"></div><span class="count" id="label-count"></span></div><div id="label-card"></div></section>
+  <section id="pane-cmp" role="tabpanel" aria-labelledby="tab-cmp" hidden><div class="bar"><span class="count" id="cmp-count"></span></div><div id="cmp-card"></div></section>
+  <section id="pane-osm" role="tabpanel" aria-labelledby="tab-osm" hidden><div class="bar"><span class="count" id="osm-count"></span></div><div id="osm-card"></div></section>
+  <section id="pane-exp" role="tabpanel" aria-labelledby="tab-exp" hidden><div class="bar"><div class="chips" id="exp-chips"></div></div><div id="exp-card"></div></section>
+</main>
+
+<script>
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const store={get(k,d){try{const v=localStorage.getItem('cell:'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('cell:'+k,JSON.stringify(v));}catch(e){}}};
+const norm=s=>String(s).toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim().replace(/^(the|a|an) /,'');
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let p=Array.from({length:n+1},(_,i)=>i);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c;}return p[n];}
+function matches(input,aliases){const n=norm(input);if(!n)return false;return aliases.some(a=>{const b=norm(a);if(n===b)return true;const tol=b.length>=10?2:(b.length>=5?1:0);return lev(n,b)<=tol;});}
+let tally={right:0,total:0};
+function score(ok){tally.total++;if(ok)tally.right++;$('#tally').textContent=tally.right+' / '+tally.total;}
+const missMap=()=>store.get('miss',{});
+function bump(k,d){const m=missMap();m[k]=Math.max(0,(m[k]||0)+d);store.set('miss',m);}
+function filterChips(id,opts,key,onChange){let cur=store.get(key,Object.keys(opts)[0]);if(!opts[cur])cur=Object.keys(opts)[0];
+  const draw=()=>{$('#'+id).innerHTML=Object.entries(opts).map(([k,l])=>`<button class="chip" data-k="${k}" aria-pressed="${cur===k}">${l}</button>`).join('');
+    document.querySelectorAll('#'+id+' .chip').forEach(c=>c.onclick=()=>{cur=c.dataset.k;store.set(key,cur);draw();onChange();});};
+  draw();return()=>cur;}
+
+/* ---------- vocabulary (from the class notes, corrected where needed) ---------- */
+// term | definition | aliases | group (org = organelle/structure, mem = membrane & transport, life = cells & organisms)
+const TERMS=[
+ ['Cell','The basic unit of all forms of life.',[],'life'],
+ ['Prokaryote','A cell with no nucleus and no membrane-bound organelles. Its DNA floats in the cytoplasm. Example: bacteria.',['prokaryotic','prokaryotes','prokaryotic cell'],'life'],
+ ['Eukaryote','A cell with a nucleus and membrane-bound organelles. Examples: animals, plants, fungi, and protists.',['eukaryotic','eukaryotes','eukaryotic cell'],'life'],
+ ['Organelle','A specialized structure inside a cell that does a specific job.',['organelles'],'org'],
+ ['Cell Membrane','Thin, flexible barrier around the cell. Regulates what comes in and goes out of the cell.',['plasma membrane','cell membranes'],'org'],
+ ['Cytoplasm','The watery (aqueous) solution inside the cell that has dissolved substances and organelles in it.',[],'org'],
+ ['Flagella','Long, whip-like structure on some cells that is used for movement.',['flagellum'],'org'],
+ ['Cilia','Short, hair-like structures on some cells that are used for movement. Smaller than flagella.',['cilium'],'org'],
+ ['Ribosome','Makes proteins.',['ribosomes'],'org'],
+ ['Cell Wall','Strong, rigid layer around the cell membrane of plants, fungi, algae, and most bacteria. Provides support and protection.',['cell walls'],'org'],
+ ['Nucleus','Large structure that contains the cell’s genetic material (DNA). It is surrounded by a nuclear envelope.',['nuclei'],'org'],
+ ['Nuclear envelope','Double membrane with pores that surrounds the nucleus.',['nuclear membrane'],'org'],
+ ['Nucleolus','Small, dense region inside the nucleus where ribosomes are assembled.',[],'org'],
+ ['Cytoskeleton','Network of protein filaments that helps the cell keep its shape.',[],'org'],
+ ['Endoplasmic Reticulum','Internal membrane system. Proteins made on its ribosomes are modified, folded, and transported here.',['ER','rough ER','smooth ER'],'org'],
+ ['Golgi Apparatus','Modifies proteins (adds lipids and carbohydrates to them) and packages them to be sent out.',['golgi','golgi body','golgi complex'],'org'],
+ ['Lysosome','Breaks down waste, like food by-products and old organelles.',['lysosomes'],'org'],
+ ['Vacuole','Stores water and other substances. Plants have one large central vacuole. Animal cells have many small ones (vesicles).',['vacuoles','central vacuole'],'org'],
+ ['Chloroplast','Site of photosynthesis. Found in plants and some other organisms.',['chloroplasts'],'org'],
+ ['Mitochondria','Site of cellular respiration, where energy from food is turned into energy the cell can use (ATP).',['mitochondrion'],'org'],
+ ['Centriole','Helps the cell divide. Found in animal cells.',['centrioles'],'org'],
+ ['Phospholipid Bilayer','The double layer that makes up the cell membrane. Hydrophilic (water-loving) heads face out toward water, and hydrophobic (water-hating) tails face in.',['lipid bilayer','phospholipid bi layer'],'mem'],
+ ['Selectively permeable','Lets some substances pass through the membrane but not others.',['semipermeable','semi permeable','selective permeability'],'mem'],
+ ['Passive transport','Movement across the membrane that needs no energy: diffusion, osmosis, and facilitated diffusion.',[],'mem'],
+ ['Diffusion','Molecules move from an area of high concentration to an area of low concentration. Requires no energy.',[],'mem'],
+ ['Osmosis','The diffusion of water through a selectively permeable membrane. Requires no energy.',[],'mem'],
+ ['Facilitated Diffusion','A membrane protein helps a substance diffuse across the membrane, still from high to low concentration. Requires no energy.',[],'mem'],
+ ['Active Transport','Proteins pump material from an area of low concentration to an area of high concentration. Requires energy.',[],'mem'],
+ ['Isotonic','The solute concentration is the same inside and outside the cell, so there is no net movement of water. The cell stays the same.',[],'mem'],
+ ['Hypotonic','The solution has less solute than the cell, so water moves into the cell. Animal cells swell and can burst.',[],'mem'],
+ ['Hypertonic','The solution has more solute than the cell, so water moves out of the cell. The cell shrinks, and plant vacuoles collapse.',[],'mem'],
+ ['Solute','The substance that gets dissolved, like salt or sugar.',['solutes'],'mem'],
+ ['Solvent','The substance that does the dissolving, usually water.',['solvents'],'mem'],
+ ['Virus','A protein coat with DNA or RNA inside. It depends on a host cell to copy itself, so it isn’t completely living.',['viruses'],'life'],
+ ['Unicellular','An organism made of one cell that does all of its life functions (bacteria, yeast, amoeba).',['single celled','single cell'],'life'],
+ ['Multicellular','An organism made of many cells that depend on each other and work together to do all of its life functions (animals, plants).',['many celled'],'life'],
+ ['Cell Specialization','Different types of cells have separate roles (functions).',['specialization','specialized cells'],'life'],
+ ['Tissue','A group of similar cells that perform a particular function (muscle tissue).',['tissues'],'life'],
+ ['Organ','A group of tissues that work together to perform a function (the heart).',['organs'],'life'],
+ ['Organ System','A group of organs that work together to perform a specific function (the circulatory system).',['organ systems'],'life'],
+].map(([t,d,a,g])=>({t,d,a:[t,...a],g}));
+const byT=Object.fromEntries(TERMS.map(x=>[x.t,x]));
+
+/* ---------- notes sheet ---------- */
+const FIXES={
+ 'Hypotonic':'Your notes say water moves in "due to higher concentration of salt." The higher salt is inside the cell. The solution outside has less solute. Plant cells don’t burst because the cell wall holds them in.',
+ 'Isotonic':'Water still moves both ways. It just moves in and out at the same rate, so there’s no net change.',
+ 'Osmosis':'"High to low" means water moves from where there’s more water (less solute) to where there’s less water (more solute).',
+ 'Solute':'Your notes say solute = solid and solvent = liquid. That’s usually true, but not always. A solute is whatever gets dissolved, even a gas like oxygen.',
+ 'Ribosome':'Spelled ribosome. Prokaryotes have them too, along with DNA and usually a cell wall.',
+ 'Cell Wall':'Most bacteria (prokaryotes) also have a cell wall, not just plants, fungi, and algae.',
+ 'Selectively permeable':'In your notes, the blank before "some substances can pass through membranes without energy…" is most likely "selectively permeable." Passive transport just means no energy is needed.',
+};
+$('#sheet-body').innerHTML=[['Cells & organisms','life'],['Organelles & structures','org'],['Membrane & transport','mem']].map(([h,g])=>`<h4>${h}</h4>`+TERMS.filter(x=>x.g===g).map(x=>`<div class="def"><b>${esc(x.t)}</b><span>${esc(x.d)}</span>${FIXES[x.t]?`<span class="fixed">Note fix: ${esc(FIXES[x.t])}</span>`:''}</div>`).join('')).join('')+
+`<h4>Cell theory</h4><div class="def"><b>1</b><span>All living things are made of cells.</span></div><div class="def"><b>2</b><span>Cells are the basic units of structure and function in living things.</span></div><div class="def"><b>3</b><span>New cells are produced from existing cells.</span></div>
+<h4>Levels of organization</h4><div class="def"><b>Order</b><span>Cells → tissues → organs → organ systems → organism</span></div>`;
+
+/* ---------- generic engine (multiple choice + typed) ---------- */
+function makeEngine(id,gen,opts={}){
+  const E={queue:[],cur:null,state:'ask',right:0,total:0,picked:null,typed:''};
+  const next=re=>{if(re&&E.cur)E.queue.splice(Math.min(3,E.queue.length),0,{...E.cur,retry:true});
+    if(!E.queue.length)E.queue=gen();E.cur=E.queue.shift();E.state='ask';E.picked=null;E.typed='';render();};
+  function finish(ok){E.total++;if(ok)E.right++;score(ok);if(E.cur.key)bump(E.cur.key,ok?-1:1);E.state=ok?'right':'wrong';E.miss=!ok;render();}
+  function render(){
+    const q=E.cur,el=$('#'+id+'-card'),st=E.state;
+    if(opts.count) $('#'+id+'-count').textContent=`${E.right} / ${E.total} correct`;
+    const fb=st==='ask'?'':`<div class="fb ${st==='right'?'ok':'no'}"><strong>${st==='right'?'Correct.':'Not quite. This one comes back in a few questions.'}</strong>${q.showAns?`<p class="answer">${esc(q.answer)}</p>`:''}${q.why?`<p>${q.why}</p>`:''}</div>`;
+    el.innerHTML=`<div class="card"><p class="label">${esc(q.label)}${q.retry?' · try again':''}</p><div class="prompt">${q.prompt}</div>
+      <div class="mc">${q.choices.map((c,i)=>{let cls='';if(st!=='ask')cls=c===q.answer?'ok':c===E.picked?'no':'dim';return `<button class="opt ${cls}" data-i="${i}" ${st!=='ask'?'disabled':''}><span class="k">${i+1}</span><span>${esc(c)}</span></button>`;}).join('')}</div>
+      ${fb}<div class="row">${st==='ask'?'<span class="kbd">Press 1–4</span>':'<button class="btn primary" id="'+id+'-next">Next</button><span class="kbd">Enter</span>'}</div></div>`;
+    if(st==='ask')el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{E.picked=q.choices[+b.dataset.i];finish(E.picked===q.answer);});
+    else{const b=$('#'+id+'-next');b.onclick=()=>next(E.miss);b.focus();}
+  }
+  return{start(){E.right=0;E.total=0;E.queue=gen();next();},key(e){if(E.cur&&E.state==='ask'&&/^[1-4]$/.test(e.key)){const b=document.querySelector(`#${id}-card .opt[data-i="${+e.key-1}"]`);if(b)b.click();}}};
+}
+
+/* ---------- comparison data ---------- */
+// structure | prokaryote | animal | plant | why
+const STRUCT=[
+ ['Cell membrane',1,1,1,'Every cell has one.'],
+ ['Cytoplasm',1,1,1,'Every cell has it.'],
+ ['Ribosomes',1,1,1,'Every cell has to make proteins.'],
+ ['DNA',1,1,1,'Every cell has DNA. In prokaryotes it floats in the cytoplasm instead of sitting in a nucleus.'],
+ ['Nucleus',0,1,1,'Prokaryotes have no nucleus. That’s what makes them prokaryotes.'],
+ ['Membrane-bound organelles',0,1,1,'Only eukaryotes have them.'],
+ ['Mitochondria',0,1,1,'Plants have mitochondria too. They need energy from food just like animals.'],
+ ['Endoplasmic reticulum',0,1,1,'Only eukaryotes have it.'],
+ ['Golgi apparatus',0,1,1,'Only eukaryotes have it.'],
+ ['Nucleolus',0,1,1,'It’s inside the nucleus, so prokaryotes don’t have one.'],
+ ['Cell wall',1,0,1,'Plants and most bacteria have a cell wall. Animal cells never do.'],
+ ['Chloroplasts',0,0,1,'Only plants (and some other organisms like algae) do photosynthesis.'],
+ ['Large central vacuole',0,0,1,'Animal cells only have small vacuoles (vesicles).'],
+ ['Centrioles',0,1,0,'Centrioles help animal cells divide. Most plant cells don’t have them.'],
+ ['Lysosomes',0,1,0,'Mainly found in animal cells. Plant cells rarely have them.'],
+];
+
+/* ---------- MULTIPLE CHOICE ---------- */
+const FUNCS=[['Makes proteins','Ribosome'],['Contains the cell’s DNA','Nucleus'],['Site of cellular respiration (makes usable energy)','Mitochondria'],['Site of photosynthesis','Chloroplast'],['Modifies and packages proteins to be sent out','Golgi Apparatus'],['Membrane system where proteins are folded and transported','Endoplasmic Reticulum'],['Breaks down waste and old organelles','Lysosome'],['Stores water (one large one in plants)','Vacuole'],['Where ribosomes are assembled','Nucleolus'],['Double membrane with pores around the nucleus','Nuclear envelope'],['Regulates what comes in and goes out of the cell','Cell Membrane'],['Rigid layer that gives plant cells support and protection','Cell Wall'],['Network of filaments that keeps the cell’s shape','Cytoskeleton'],['Helps the cell divide','Centriole'],['Long whip-like tail for movement','Flagella'],['Short hair-like structures for movement','Cilia'],['Watery solution that holds the organelles','Cytoplasm']];
+const ORGS=[...new Set(FUNCS.map(f=>f[1]))];
+const TRANSPORT=[
+ ['Oxygen moves from the lungs (high concentration) into the blood (low concentration) without using energy.','Diffusion'],
+ ['Water moves into a cell across its membrane.','Osmosis'],
+ ['Glucose moves into a cell through a protein channel, from high to low concentration.','Facilitated Diffusion'],
+ ['A cell uses energy to pump sodium out, even though there is already more sodium outside.','Active Transport'],
+ ['Perfume spreads across a room.','Diffusion'],
+ ['A raisin placed in water swells up.','Osmosis'],
+ ['Root cells pull in minerals from soil that has fewer minerals than the root.','Active Transport'],
+ ['Ions pass through a channel protein from where there are more of them to where there are fewer.','Facilitated Diffusion'],
+ ['A wilted plant firms up after it is watered.','Osmosis'],
+ ['Food coloring spreads through a glass of water.','Diffusion'],
+ ['A protein pump moves molecules from low concentration to high concentration.','Active Transport'],
+ ['Carbon dioxide leaves a cell where there is a lot of it and moves out to where there is little.','Diffusion'],
+];
+const TRANS_WHY={'Diffusion':'High to low concentration, no energy, no protein needed.','Osmosis':'It’s water moving across a membrane.','Facilitated Diffusion':'High to low, no energy, but it goes through a protein.','Active Transport':'Low to high concentration, so it needs energy (and a protein pump).'};
+const CONCEPTS=[
+ ['Which is NOT part of the cell theory?','Cells can form from nonliving matter',['All living things are made of cells','Cells are the basic units of structure and function','New cells are produced from existing cells']],
+ ['What is the correct order of the levels of organization?','Cells → tissues → organs → organ systems',['Tissues → cells → organs → organ systems','Cells → organs → tissues → organ systems','Organs → tissues → cells → organ systems']],
+ ['Why isn’t a virus considered completely living?','It depends on a host cell to copy itself',['It has no DNA or RNA','It is bigger than a cell','It makes its own energy']],
+ ['What is a virus made of?','A protein coat with DNA or RNA inside',['A cell membrane and cytoplasm','A cell wall and ribosomes','A nucleus and mitochondria']],
+ ['Which is an example of a unicellular organism?','Yeast',['A tree','A dog','A mushroom']],
+ ['In the phospholipid bilayer, the hydrophobic (water-hating) tails…','face inward, away from water',['face outward toward water','stick out of the cell','are attached to the cell wall']],
+ ['What controls which substances go in and out through the membrane?','Proteins embedded in the bilayer',['The nucleolus','The cell wall','Ribosomes']],
+ ['Which statement about prokaryotes is true?','They have ribosomes but no nucleus',['They have a nucleus but no ribosomes','They have mitochondria','They are always multicellular']],
+ ['What does "selectively permeable" mean?','It lets some substances through but not others',['It lets everything through','It lets nothing through','It only lets water through']],
+ ['Which type of transport needs energy?','Active transport',['Diffusion','Osmosis','Facilitated diffusion']],
+ ['Cell specialization means…','different types of cells have different jobs',['every cell does every job','cells can only divide once','cells all look the same']],
+ ['In a multicellular organism, the cells are…','interdependent: they can’t survive alone',['each able to live on their own','all exactly the same','each a separate organism']],
+];
+function mcDef(pool){const x=pick(pool);const wrong=shuffle(TERMS.filter(y=>y!==x&&y.g===x.g)).slice(0,3).map(y=>y.t);
+  return{label:'Definition',prompt:esc(x.d),choices:shuffle([x.t,...wrong]),answer:x.t,key:x.t};}
+function mcFunc(){const [f,o]=pick(FUNCS);return{label:'Which organelle?',prompt:`Which part of the cell does this? <br><span style="font-weight:500">${esc(f)}</span>`,choices:shuffle([o,...shuffle(ORGS.filter(z=>z!==o)).slice(0,3)]),answer:o,key:o,why:esc(byT[o]?byT[o].d:'')};}
+function mcCompare(){
+  const kinds=[
+   ['Which is found in plant cells but NOT animal cells?',r=>r[3]&&!r[2]],
+   ['Which is found in animal cells but NOT plant cells?',r=>r[2]&&!r[3]],
+   ['Which do ALL cells have, including prokaryotes?',r=>r[1]&&r[2]&&r[3]],
+   ['Which do prokaryotes NOT have?',r=>!r[1]&&r[2]&&r[3]],
+  ];
+  const [q,f]=pick(kinds);const yes=STRUCT.filter(f),no=STRUCT.filter(r=>!f(r));const a=pick(yes);
+  return{label:'Compare cells',prompt:esc(q),choices:shuffle([a[0],...shuffle(no).slice(0,3).map(r=>r[0])]),answer:a[0],why:esc(a[4])};}
+function mcTransport(){const [s,a]=pick(TRANSPORT);return{label:'Transport',prompt:esc(s)+'<br><span style="font-weight:500">Which type of transport is this?</span>',choices:shuffle(['Diffusion','Osmosis','Facilitated Diffusion','Active Transport']),answer:a,why:esc(TRANS_WHY[a])};}
+function mcOsmosis(){const s=osmScenario();const k=pick(['tone','water','cell']);
+  const q={tone:'The solution outside the cell is…',water:'Which way does water move?',cell:'What happens to the cell?'}[k];
+  const ch={tone:['Hypotonic','Hypertonic','Isotonic'],water:['Into the cell','Out of the cell','No net movement'],cell:['Swells','Shrinks','Stays the same']}[k];
+  const extra={tone:'Selectively permeable',water:'Only salt moves',cell:'Divides in two'}[k];
+  return{label:'Osmosis',prompt:s.html+`<br><span style="font-weight:500">${q}</span>`,choices:shuffle([...ch,extra]),answer:s.ans[k],why:s.why};}
+function mcConcept(){const [q,a,w]=pick(CONCEPTS);return{label:'Concepts',prompt:esc(q),choices:shuffle([a,...w]),answer:a};}
+const MCF={mix:'Mixed',org:'Organelles',cmp:'Compare cells',mem:'Transport & osmosis',life:'Cells & organisms'};
+const mcF=filterChips('mc-filter',MCF,'mcF',()=>MC.start());
+const MC=makeEngine('mc',()=>{const out=[];const f=mcF();
+  for(let i=0;i<10;i++){const r=Math.random();let q;
+    if(f==='org') q=r<.5?mcFunc():mcDef(TERMS.filter(x=>x.g==='org'));
+    else if(f==='cmp') q=mcCompare();
+    else if(f==='mem') q=r<.35?mcTransport():r<.7?mcOsmosis():mcDef(TERMS.filter(x=>x.g==='mem'));
+    else if(f==='life') q=r<.5?mcDef(TERMS.filter(x=>x.g==='life')):mcConcept();
+    else q=[mcFunc,mcCompare,mcTransport,mcOsmosis,mcConcept,()=>mcDef(TERMS)][Math.floor(r*6)]();
+    out.push(q);} return out;},{count:true});
+
+/* ---------- VOCAB (typed recall) ---------- */
+const VF={all:'All terms',org:'Organelles',mem:'Membrane & transport',life:'Cells & organisms',weak:'My weak ones'};
+const vF=filterChips('vocab-filter',VF,'vocabF',()=>buildVocab());
+const vD=filterChips('vocab-dir',{d2t:'Definition → term',t2d:'Term → definition'},'vocabD',()=>{V.state='ask';renderVocab();});
+const V={queue:[],cur:null,total:0,first:0,missed:new Set(),state:'ask',miss:false,requeue:false,typed:'',note:''};
+function buildVocab(only){let list=only?only.map(t=>byT[t]):TERMS.filter(x=>vF()==='all'||vF()==='weak'||x.g===vF());V.note='';
+  if(!only&&vF()==='weak'){const m=missMap();const w=list.filter(x=>(m[x.t]||0)>0);if(w.length)list=w;else V.note='No weak terms yet. Anything you miss anywhere in the app shows up here.';}
+  V.queue=shuffle(list.map(x=>x.t));V.total=V.queue.length;V.first=0;V.missed=new Set();V.cur=null;nextVocab();}
+function nextVocab(){if(V.requeue&&V.cur)V.queue.splice(Math.min(3,V.queue.length),0,V.cur);V.requeue=false;V.cur=V.queue.length?V.queue.shift():null;V.state='ask';V.miss=false;V.typed='';renderVocab();}
+function vMiss(){if(!V.miss){V.miss=true;V.missed.add(V.cur);bump(V.cur,1);score(false);}V.requeue=true;}
+function vRight(){if(!V.miss){V.first++;score(true);bump(V.cur,-1);}}
+function renderVocab(){const el=$('#vocab-card');
+  if(!V.cur){const pct=V.total?Math.round(V.first/V.total*100):0,ms=[...V.missed];
+    el.innerHTML=`<div class="card"><p class="label">Deck cleared</p><p class="big">${pct}%</p><p class="tip">${V.first} of ${V.total} recalled on the first try.</p>${ms.length?`<div class="missed">${ms.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}<div class="row">${ms.length?`<button class="btn primary" id="v-redo">Drill these ${ms.length} again</button>`:''}<button class="btn" id="v-again">Start over</button></div></div>`;
+    if(ms.length)$('#v-redo').onclick=()=>buildVocab(ms);$('#v-again').onclick=()=>buildVocab();return;}
+  const x=byT[V.cur],head=`<div class="row" style="justify-content:space-between"><p class="label">${vD()==='d2t'?'Definition':'Term'}</p><span class="count">${V.queue.length+1} left · ${V.first} first try</span></div>${V.note?`<p class="tip">${esc(V.note)}</p>`:''}`;
+  if(vD()==='d2t'){
+    const st=V.state;let fb='',act='';
+    if(st==='ask')act='<button class="btn primary" id="v-check">Check</button><button class="btn ghost" id="v-idk">I don’t know</button><span class="kbd">Enter</span>';
+    else{fb=st==='right'?`<div class="fb ok"><strong>Got it.</strong><p class="answer">${esc(x.t)}</p></div>`:`<div class="fb no"><strong>${st==='reveal'?'Here’s the answer.':'Not quite.'} It comes back in a few cards.</strong><p class="answer">${esc(x.t)}</p></div>`;
+      act=`<button class="btn primary" id="v-next">Next card</button>${st==='wrong'?'<button class="btn ghost" id="v-ov">I had it right</button>':''}<span class="kbd">Enter</span>`;}
+    el.innerHTML=`<div class="card">${head}<p class="prompt">${esc(x.d)}</p><label for="v-in" style="position:absolute;left:-9999px">Your answer</label><input type="text" id="v-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the term" ${st!=='ask'?'readonly':''} value="${esc(V.typed)}">${fb}<div class="row">${act}</div></div>`;
+    const inp=$('#v-in');
+    const check=()=>{if(!inp.value.trim()){inp.focus();return;}V.typed=inp.value;if(matches(inp.value,x.a)){vRight();V.state='right';}else{vMiss();V.state='wrong';}renderVocab();};
+    if(st==='ask'){inp.focus();inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();check();}};$('#v-check').onclick=check;$('#v-idk').onclick=()=>{vMiss();V.state='reveal';renderVocab();};}
+    else{inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();nextVocab();}};$('#v-next').onclick=nextVocab;$('#v-next').focus();
+      if($('#v-ov'))$('#v-ov').onclick=()=>{V.missed.delete(V.cur);bump(V.cur,-2);tally.right++;$('#tally').textContent=tally.right+' / '+tally.total;V.first++;V.requeue=false;V.state='right';renderVocab();};}
+  }else{
+    const st=V.state;let body='';
+    if(st==='ask')body=`<textarea id="v-ta" placeholder="Explain it in your own words. Add an example if you can."></textarea><div class="row"><button class="btn primary" id="v-show">Show the definition</button><span class="kbd">Ctrl + Enter</span></div>`;
+    else if(st==='grade')body=`<div class="fb info"><strong>Definition</strong><p>${esc(x.d)}</p></div><p class="tip">Did you get the main idea?</p><div class="row"><button class="btn good" id="v-got">Got it</button><button class="btn bad" id="v-missed">Missed it</button></div>`;
+    else body=`<div class="fb ${V.miss?'no':'ok'}"><strong>${V.miss?'It comes back in a few cards.':'Nice.'}</strong><p>${esc(x.d)}</p></div><div class="row"><button class="btn primary" id="v-next">Next card</button></div>`;
+    el.innerHTML=`<div class="card">${head}<p class="prompt term">${esc(x.t)}</p>${body}</div>`;
+    if($('#v-ta')){const ta=$('#v-ta');ta.focus();ta.onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();V.state='grade';renderVocab();}};$('#v-show').onclick=()=>{V.state='grade';renderVocab();};}
+    if($('#v-got')){$('#v-got').onclick=()=>{vRight();V.state='done';renderVocab();};$('#v-missed').onclick=()=>{vMiss();V.state='done';renderVocab();};}
+    if($('#v-next')&&st==='done'){$('#v-next').onclick=nextVocab;$('#v-next').focus();}
+  }}
+
+/* ---------- LABEL THE CELL ---------- */
+const P=(k,ax,ay,names)=>({k,ax,ay,names});
+const DIAGRAMS={
+ animal:{title:'Animal cell',parts:[
+   P('Cell membrane',134,290,['cell membrane','plasma membrane','membrane']),
+   P('Cilia',246,52,['cilia','cilium']),
+   P('Cytoplasm',320,100,['cytoplasm']),
+   P('Nucleus',305,232,['nucleus']),
+   P('Nucleolus',272,192,['nucleolus']),
+   P('Nuclear envelope',285,141,['nuclear envelope','nuclear membrane']),
+   P('Endoplasmic reticulum',197,170,['endoplasmic reticulum','er','rough er','rough endoplasmic reticulum']),
+   P('Golgi apparatus',405,218,['golgi apparatus','golgi','golgi body','golgi complex']),
+   P('Mitochondrion',395,128,['mitochondrion','mitochondria']),
+   P('Lysosome',470,200,['lysosome','lysosomes']),
+   P('Ribosomes',362,318,['ribosome','ribosomes']),
+   P('Centrioles',300,342,['centriole','centrioles']),
+   P('Vacuole',182,300,['vacuole','vesicle','vacuoles']),
+   P('Cytoskeleton',470,292,['cytoskeleton'])],
+  draw(){let s=`<ellipse cx="320" cy="210" rx="215" ry="160" fill="var(--cyto)" stroke="var(--memb)" stroke-width="4"/>`;
+   for(let t=215;t<=325;t+=8){const r=t*Math.PI/180,x=320+215*Math.cos(r),y=210+160*Math.sin(r);let nx=Math.cos(r)/215,ny=Math.sin(r)/160;const L=Math.hypot(nx,ny);nx/=L;ny/=L;s+=`<line x1="${x}" y1="${y}" x2="${x+nx*15}" y2="${y+ny*15}" stroke="var(--memb)" stroke-width="2" stroke-linecap="round"/>`;}
+   s+=`<path d="M425,300 L505,252 M440,330 L478,262 M412,276 L498,322" stroke="var(--cytosk)" stroke-width="1.6" fill="none" opacity=".8"/>`;
+   for(let i=0;i<3;i++){const x=210-i*13;s+=`<path d="M${x},140 q-10,15 0,30 t0,30 t0,30 t0,30" stroke="var(--er)" stroke-width="3" fill="none"/>`;for(const y of [152,182,212,242])s+=`<circle cx="${x-7}" cy="${y}" r="2.2" fill="var(--ribo)"/>`;}
+   s+=`<circle cx="285" cy="200" r="60" fill="var(--nuc)" stroke="var(--nucS)" stroke-width="3"/><circle cx="285" cy="200" r="54" fill="none" stroke="var(--nucS)" stroke-width="1.5" stroke-dasharray="14 5"/><circle cx="272" cy="192" r="17" fill="var(--nucS)"/>`;
+   for(let i=0;i<4;i++)s+=`<path d="M375,${206+i*10} q30,-14 60,0" stroke="var(--golgi)" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+   s+=`<circle cx="446" cy="200" r="4" fill="var(--golgi)"/><circle cx="440" cy="250" r="4" fill="var(--golgi)"/>`;
+   const mito=(x,y,a)=>`<g transform="translate(${x},${y}) rotate(${a})"><ellipse rx="30" ry="14" fill="var(--mito)" stroke="var(--mitoS)" stroke-width="2.5"/><path d="M-22,0 q4.5,-9 9,0 t9,0 t9,0 t9,0 t9,0" stroke="var(--mitoS)" stroke-width="1.6" fill="none"/></g>`;
+   s+=mito(395,128,-18)+mito(245,318,12);
+   s+=`<circle cx="470" cy="200" r="11" fill="var(--lyso)" stroke="var(--lysoS)" stroke-width="2"/><circle cx="467" cy="197" r="2" fill="var(--lysoS)"/><circle cx="473" cy="203" r="2" fill="var(--lysoS)"/>`;
+   for(const [x,y] of [[350,318],[362,310],[372,324],[358,332],[340,302],[385,312]])s+=`<circle cx="${x}" cy="${y}" r="3" fill="var(--ribo)"/>`;
+   s+=`<g transform="translate(300,342)" stroke="var(--ribo)" stroke-width="1.5" fill="none"><rect x="-16" y="-6" width="24" height="10" rx="2"/><rect x="6" y="-14" width="10" height="24" rx="2"/><path d="M-12,-6v10M-8,-6v10M-4,-6v10M0,-6v10"/></g>`;
+   s+=`<circle cx="182" cy="300" r="15" fill="var(--vac)" stroke="var(--vacS)" stroke-width="2"/>`;
+   return s;}},
+ plant:{title:'Plant cell',parts:[
+   P('Cell wall',117,300,['cell wall']),
+   P('Cell membrane',420,60,['cell membrane','plasma membrane','membrane']),
+   P('Central vacuole',378,232,['vacuole','central vacuole','large central vacuole']),
+   P('Nucleus',206,162,['nucleus']),
+   P('Nucleolus',182,134,['nucleolus']),
+   P('Nuclear envelope',190,98,['nuclear envelope','nuclear membrane']),
+   P('Endoplasmic reticulum',196,214,['endoplasmic reticulum','er','rough er']),
+   P('Golgi apparatus',310,92,['golgi apparatus','golgi','golgi body']),
+   P('Chloroplast',195,300,['chloroplast','chloroplasts']),
+   P('Mitochondrion',488,215,['mitochondrion','mitochondria']),
+   P('Ribosomes',258,340,['ribosome','ribosomes']),
+   P('Cytoplasm',160,258,['cytoplasm'])],
+  draw(){let s=`<rect x="108" y="43" width="424" height="334" rx="16" fill="var(--wall)" stroke="var(--wallS)" stroke-width="2"/><rect x="124" y="59" width="392" height="302" rx="9" fill="var(--cyto)" stroke="var(--memb)" stroke-width="3"/>`;
+   s+=`<rect x="260" y="125" width="200" height="185" rx="44" fill="var(--vac)" stroke="var(--vacS)" stroke-width="2.5"/>`;
+   s+=`<circle cx="190" cy="140" r="42" fill="var(--nuc)" stroke="var(--nucS)" stroke-width="3"/><circle cx="190" cy="140" r="37" fill="none" stroke="var(--nucS)" stroke-width="1.4" stroke-dasharray="11 4"/><circle cx="182" cy="134" r="12" fill="var(--nucS)"/>`;
+   for(let i=0;i<3;i++){const y=201+i*13;s+=`<path d="M150,${y} q15,-10 30,0 t30,0 t30,0" stroke="var(--er)" stroke-width="3" fill="none"/>`;for(const x of [158,188,218])s+=`<circle cx="${x}" cy="${y-7}" r="2.2" fill="var(--ribo)"/>`;}
+   for(let i=0;i<4;i++)s+=`<path d="M285,${80+i*9} q25,-11 50,0" stroke="var(--golgi)" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+   const chl=(x,y,a)=>`<g transform="translate(${x},${y}) rotate(${a})"><ellipse rx="28" ry="14" fill="var(--chl)" stroke="var(--chlS)" stroke-width="2.5"/>${[-14,0,14].map(dx=>`<rect x="${dx-4}" y="-6" width="8" height="12" rx="1.5" fill="var(--chlS)" opacity=".75"/>`).join('')}</g>`;
+   s+=chl(195,300,10)+chl(482,104,-25)+chl(484,322,25);
+   s+=`<g transform="translate(488,215) rotate(90)"><ellipse rx="22" ry="10" fill="var(--mito)" stroke="var(--mitoS)" stroke-width="2.2"/><path d="M-15,0 q3.5,-7 7,0 t7,0 t7,0 t7,0" stroke="var(--mitoS)" stroke-width="1.4" fill="none"/></g>`;
+   for(const [x,y] of [[250,338],[262,346],[274,336],[238,330],[284,348]])s+=`<circle cx="${x}" cy="${y}" r="3" fill="var(--ribo)"/>`;
+   return s;}},
+ pro:{title:'Prokaryote (bacterium)',parts:[
+   P('Cell wall',156,210,['cell wall']),
+   P('Cell membrane',300,132,['cell membrane','plasma membrane','membrane']),
+   P('Cytoplasm',205,250,['cytoplasm']),
+   P('DNA',340,190,['dna','nucleoid','genetic material','chromosome','dna nucleoid']),
+   P('Ribosomes',420,240,['ribosome','ribosomes']),
+   P('Flagellum',540,210,['flagellum','flagella'])],
+  draw(){let s=`<path d="M468,210 q18,-22 36,0 t36,0 t36,0" stroke="var(--memb)" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+   s+=`<rect x="150" y="120" width="320" height="180" rx="90" fill="var(--wall)" stroke="var(--wallS)" stroke-width="2"/><rect x="162" y="132" width="296" height="156" rx="78" fill="var(--cyto)" stroke="var(--memb)" stroke-width="3"/>`;
+   s+=`<path d="M260,190 C280,160 320,230 340,190 S400,170 380,215 S300,252 285,225 S240,215 260,190" stroke="var(--nucS)" stroke-width="3" fill="none"/>`;
+   for(const [x,y] of [[220,170],[232,242],[410,168],[420,240],[244,205],[402,208],[300,160],[330,262],[262,262]])s+=`<circle cx="${x}" cy="${y}" r="3.2" fill="var(--ribo)"/>`;
+   return s;}},
+};
+const LF={animal:'Animal cell',plant:'Plant cell',pro:'Prokaryote'};
+const lF=filterChips('label-filter',LF,'labelF',()=>newLabel());
+const LB={nums:[],res:null,typed:[],right:0,total:0};
+function layout(parts){const L=parts.filter(p=>p.ax<320).sort((a,b)=>a.ay-b.ay),R=parts.filter(p=>p.ax>=320).sort((a,b)=>a.ay-b.ay);
+  const pos=new Map();[[L,26],[R,614]].forEach(([col,x])=>col.forEach((p,i)=>pos.set(p.k,[x,38+(i+0.5)*(344/col.length)])));return pos;}
+function newLabel(){const d=DIAGRAMS[lF()];LB.nums=shuffle(d.parts.map((_,i)=>i+1));LB.res=null;LB.typed=[];renderLabel();}
+function renderLabel(){const d=DIAGRAMS[lF()],pos=layout(d.parts),el=$('#label-card'),done=!!LB.res;
+  $('#label-count').textContent=`${LB.right} / ${LB.total} perfect`;
+  let s=d.draw();
+  d.parts.forEach((p,i)=>{const [bx,by]=pos.get(p.k),n=LB.nums[i],st=done?(LB.res[i]?'ok':'no'):'';
+    const x2=bx<320?bx+13:bx-13;
+    s+=`<line class="lead" x1="${x2}" y1="${by}" x2="${p.ax}" y2="${p.ay}"/><circle class="pin" cx="${p.ax}" cy="${p.ay}" r="3"/>`;
+    s+=`<g class="badge ${st}"><circle cx="${bx}" cy="${by}" r="13"/><text x="${bx}" y="${by+4.5}" text-anchor="middle">${n}</text></g>`;
+    if(done)s+=`<text class="nm ${st}" x="${bx<320?bx-2:bx+2}" y="${by+27}" text-anchor="${bx<320?'start':'end'}">${esc(p.k)}</text>`;});
+  const order=d.parts.map((p,i)=>({p,i,n:LB.nums[i]})).sort((a,b)=>a.n-b.n);
+  const got=done?LB.res.filter(Boolean).length:0;
+  el.innerHTML=`<div class="card"><p class="label">${esc(d.title)} · label every numbered part</p>
+    <div class="diagram"><svg viewBox="0 0 640 420" role="img" aria-label="${esc(d.title)} diagram with numbered parts">${s}</svg></div>
+    <div class="lblgrid">${order.map(({p,i,n})=>`<div class="lbl"><b>${n}</b><input type="text" id="lb-${i}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Name this part" ${done?'readonly':''} value="${esc(LB.typed[i]||'')}" class="${done?(LB.res[i]?'ok':'no'):''}">${done&&!LB.res[i]?`<span class="fix">${esc(p.k)}</span>`:''}</div>`).join('')}</div>
+    ${done?`<div class="fb ${got===d.parts.length?'ok':'no'}"><strong>${got} of ${d.parts.length} correct.</strong><p>${got===d.parts.length?'Every label is right.':'Try it again. The numbers get shuffled each time.'}</p></div>`:''}
+    <div class="row">${done?'<button class="btn primary" id="lb-again">Try again with new numbers</button>':'<button class="btn primary" id="lb-check">Check labels</button><button class="btn ghost" id="lb-show">Show me</button>'}</div></div>`;
+  const inputs=order.map(o=>$('#lb-'+o.i));
+  if(!done){inputs[0].focus();
+    inputs.forEach((inp,j)=>inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();if(j<inputs.length-1)inputs[j+1].focus();else $('#lb-check').click();}});
+    const check=reveal=>{LB.typed=d.parts.map((_,i)=>$('#lb-'+i).value);LB.res=d.parts.map((p,i)=>!reveal&&matches(LB.typed[i],p.names));
+      const ok=LB.res.every(Boolean);LB.total++;if(ok)LB.right++;score(ok);renderLabel();};
+    $('#lb-check').onclick=()=>check(false);$('#lb-show').onclick=()=>check(true);
+  }else{$('#lb-again').onclick=newLabel;}
+}
+
+/* ---------- COMPARE CELLS ---------- */
+const C={rows:[],sel:[],res:null,right:0,total:0};
+function newCompare(){C.rows=shuffle([...STRUCT]).slice(0,7);C.sel=C.rows.map(()=>[false,false,false]);C.res=null;renderCompare();}
+function renderCompare(){const el=$('#cmp-card'),done=!!C.res;$('#cmp-count').textContent=`${C.right} / ${C.total} rows correct`;
+  el.innerHTML=`<div class="card"><p class="label">Which cells have it?</p><p class="tip">Tap every cell type that has each structure, then check.</p>
+    <div style="overflow-x:auto"><table class="cmp"><thead><tr><th>Structure</th><th>Prokaryote</th><th>Animal</th><th>Plant</th></tr></thead><tbody>
+    ${C.rows.map((r,i)=>`<tr><td>${esc(r[0])}</td>${[0,1,2].map(j=>{const want=!!r[j+1],on=C.sel[i][j];const cls=done?(on===want?'ok':'no'):'';
+      return `<td><button class="tg ${cls}" data-i="${i}" data-j="${j}" aria-pressed="${done?want:on}" aria-label="${esc(r[0])} in ${['prokaryote','animal','plant'][j]} cells" ${done?'disabled':''}>${(done?want:on)?'✓':''}</button></td>`;}).join('')}</tr>
+      ${done&&!C.res[i]?`<tr><td colspan="4" class="cmpnote">${esc(r[4])}</td></tr>`:''}`).join('')}
+    </tbody></table></div>
+    ${done?`<div class="fb ${C.res.every(Boolean)?'ok':'no'}"><strong>${C.res.filter(Boolean).length} of ${C.rows.length} rows correct.</strong><p>Green rings are right, red rings are the ones you missed. The checkmarks now show the correct answers.</p></div>`:''}
+    <div class="row">${done?'<button class="btn primary" id="c-next">New set</button>':'<button class="btn primary" id="c-check">Check</button>'}</div></div>`;
+  if(!done){el.querySelectorAll('.tg').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,j=+b.dataset.j;C.sel[i][j]=!C.sel[i][j];renderCompare();});
+    $('#c-check').onclick=()=>{C.res=C.rows.map((r,i)=>[0,1,2].every(j=>!!r[j+1]===C.sel[i][j]));C.res.forEach(ok=>{C.total++;if(ok)C.right++;score(ok);});renderCompare();};}
+  else{$('#c-next').onclick=newCompare;$('#c-next').focus();}}
+
+/* ---------- OSMOSIS ---------- */
+function osmScenario(){
+  const kind=pick(['animal','plant','red blood cell']);
+  const tone=pick(['Hypotonic','Hypertonic','Isotonic']);
+  let cell=ri(2,10),sol=tone==='Isotonic'?cell:tone==='Hypertonic'?cell+ri(2,10):Math.max(0,cell-ri(2,cell));
+  if(tone==='Hypotonic'&&sol===cell)sol=0;
+  const asWater=Math.random()<.35, sub=pick(['salt','sugar']);
+  const noun=kind==='red blood cell'?kind:kind+' cell', A=/^[aeiou]/.test(noun)?'An':'A';
+  const txt=asWater?`${A} ${noun} is ${100-cell}% water. It is placed in a solution that is ${100-sol}% water.`:`${A} ${noun} has ${cell}% ${sub} inside. It is placed in a solution that is ${sol}% ${sub}.`;
+  const water={Hypotonic:'Into the cell',Hypertonic:'Out of the cell',Isotonic:'No net movement'}[tone];
+  const cellA={Hypotonic:'Swells',Hypertonic:'Shrinks',Isotonic:'Stays the same'}[tone];
+  const plantNote=kind==='plant'?{Hypotonic:' The plant cell swells and gets firm, but its cell wall keeps it from bursting.',Hypertonic:' The plant cell’s vacuole collapses and the membrane pulls away from the wall.',Isotonic:''}[tone]:{Hypotonic:' An animal cell can swell until it bursts.',Hypertonic:'',Isotonic:''}[tone];
+  const conv=asWater?`${100-cell}% water means ${cell}% solute in the cell, and ${100-sol}% water means ${sol}% solute outside. `:'';
+  const why=`${conv}The solution has ${sol>cell?'more':sol<cell?'less':'the same'} solute than the cell, so it’s <b>${tone.toLowerCase()}</b>. Water moves toward more solute, so it moves <b>${water.toLowerCase()}</b> and the cell <b>${cellA.toLowerCase()}</b>.${plantNote}`;
+  return{kind,cell,sol,asWater,html:esc(txt),ans:{tone,water,cell:cellA},why};
+}
+const O={s:null,pick:{},done:false,right:0,total:0};
+function newOsm(){O.s=osmScenario();O.pick={};O.done=false;renderOsm();}
+function beakerSVG(s){const lvl=s.sol>s.cell?'more':s.sol<s.cell?'less':'same';const dots=n=>Array.from({length:n},()=>`<circle cx="${ri(18,132)}" cy="${ri(62,150)}" r="2.2" fill="var(--ink)" opacity=".55"/>`).join('');
+  const inside=Array.from({length:Math.min(14,s.cell+2)},()=>`<circle cx="${ri(62,88)}" cy="${ri(96,124)}" r="2.2" fill="var(--nucS)"/>`).join('');
+  return `<svg viewBox="0 0 150 165" aria-hidden="true"><path d="M8,10 V155 Q8,160 13,160 H137 Q142,160 142,155 V10" fill="none" stroke="var(--muted)" stroke-width="3"/><rect x="11" y="52" width="128" height="105" fill="var(--vac)" opacity=".7"/>${dots(Math.min(40,Math.round(s.sol*2.5)))}<circle cx="75" cy="110" r="24" fill="var(--cyto)" stroke="var(--memb)" stroke-width="2.5"/>${inside}</svg>`;}
+function renderOsm(){const s=O.s,el=$('#osm-card'),done=O.done;$('#osm-count').textContent=`${O.right} / ${O.total} correct`;
+  const qs=[['tone','The solution outside is…',['Hypotonic','Hypertonic','Isotonic']],['water','Water moves…',['Into the cell','Out of the cell','No net movement']],['cell','The cell…',['Swells','Shrinks','Stays the same']]];
+  el.innerHTML=`<div class="card"><p class="label">Osmosis</p><div class="beaker">${beakerSVG(s)}<p class="prompt" style="flex:1;min-width:200px">${s.html}</p></div>
+    <div class="seg3">${qs.map(([k,q,opts])=>`<div class="q"><b>${q}</b><div class="opts">${opts.map(o=>{let cls='';if(done)cls=o===s.ans[k]?'ok':o===O.pick[k]?'no':'';return `<button data-k="${k}" data-o="${esc(o)}" aria-pressed="${O.pick[k]===o}" class="${cls}" ${done?'disabled':''}>${esc(o)}</button>`;}).join('')}</div></div>`).join('')}</div>
+    ${done?`<div class="fb ${qs.every(([k])=>O.pick[k]===s.ans[k])?'ok':'no'}"><strong>${qs.every(([k])=>O.pick[k]===s.ans[k])?'All three correct.':'Not quite.'}</strong><p>${s.why}</p></div>`:''}
+    <div class="row">${done?'<button class="btn primary" id="o-next">Next scenario</button>':`<button class="btn primary" id="o-check" ${Object.keys(O.pick).length<3?'disabled':''}>Check</button>`}</div></div>`;
+  if(!done){el.querySelectorAll('.seg3 button').forEach(b=>b.onclick=()=>{O.pick[b.dataset.k]=b.dataset.o;renderOsm();});
+    $('#o-check').onclick=()=>{O.done=true;const ok=['tone','water','cell'].every(k=>O.pick[k]===s.ans[k]);O.total++;if(ok)O.right++;score(ok);renderOsm();};}
+  else{$('#o-next').onclick=newOsm;$('#o-next').focus();}}
+
+/* ---------- EXPLAIN IT (objectives) ---------- */
+const EXP=[
+ {id:'theory',t:'Cell theory',q:'List the three parts of the cell theory.',pts:[
+  ['All living things are made of cells.',['made of cell','composed of cell','made up of cell']],
+  ['Cells are the basic units of structure and function in living things.',['basic unit','structure and function','structure','function']],
+  ['New cells are produced from existing cells.',['other cell','existing cell','pre existing','preexisting','come from cell','from cells','produced from']]]},
+ {id:'membrane',t:'Cell membrane',q:'Describe what the cell membrane is made of and how it is arranged.',pts:[
+  ['It’s a phospholipid bilayer (double layer of phospholipids).',['phospholipid','bilayer','lipid']],
+  ['The hydrophilic (water-loving) heads face outward toward water.',['hydrophilic','water loving','head']],
+  ['The hydrophobic (water-hating) tails face inward.',['hydrophobic','water hating','tail']],
+  ['Proteins are embedded in the bilayer.',['protein']],
+  ['The proteins control what goes in and out.',['control','regulat','in and out','goes in']],
+  ['It is selectively permeable.',['selective','permeable']]]},
+ {id:'transport',t:'Transport',q:'Explain how the cell membrane acts as a selective barrier. Use diffusion, osmosis, facilitated diffusion, and active transport.',pts:[
+  ['The membrane is selectively permeable: some things pass, some don’t.',['selective','permeable','some']],
+  ['Diffusion: high to low concentration, no energy.',['diffusion']],
+  ['Osmosis: diffusion of water across the membrane.',['osmosis','water']],
+  ['Facilitated diffusion: a protein helps, still high to low, no energy.',['facilitated','channel','protein']],
+  ['Active transport: low to high, needs energy, uses protein pumps.',['active','energy','pump','low to high']],
+  ['Diffusion, osmosis, and facilitated diffusion are passive (no energy).',['passive','no energy']]]},
+ {id:'prokeuk',t:'Prokaryote vs. eukaryote',q:'Compare and contrast prokaryotic and eukaryotic cells.',pts:[
+  ['Both have a cell membrane, cytoplasm, ribosomes, and DNA.',['both','ribosome','membrane','cytoplasm','dna']],
+  ['Prokaryotes have no nucleus. Their DNA floats in the cytoplasm.',['no nucleus','without a nucleus','dont have a nucleus','lack a nucleus']],
+  ['Prokaryotes have no membrane-bound organelles.',['organelle']],
+  ['Eukaryotes have a nucleus and membrane-bound organelles.',['eukaryot']],
+  ['Prokaryotes are simpler and smaller. Example: bacteria.',['bacteria','simple','small']],
+  ['Eukaryotes include animals, plants, fungi, and protists.',['animal','plant','fungi','protist']]]},
+ {id:'plantanimal',t:'Plant vs. animal',q:'Compare and contrast plant and animal cells.',pts:[
+  ['Both are eukaryotic, with a nucleus, mitochondria, ER, Golgi, ribosomes, and a membrane.',['both','eukaryot','nucleus','mitochondria']],
+  ['Only plant cells have a cell wall.',['cell wall','wall']],
+  ['Only plant cells have chloroplasts for photosynthesis.',['chloroplast','photosynthesis']],
+  ['Plants have one large central vacuole. Animals have small vacuoles (vesicles).',['vacuole','vesicle']],
+  ['Animal cells have centrioles (and lysosomes).',['centriole','lysosome']]]},
+ {id:'unimulti',t:'Unicellular vs. multicellular',q:'Describe how the cells of unicellular organisms are different from the cells of multicellular organisms.',pts:[
+  ['A unicellular organism is one cell that does all of its life functions.',['one cell','single cell','all of','life function']],
+  ['Examples of unicellular: bacteria, yeast, amoeba.',['bacteria','yeast','amoeba']],
+  ['Multicellular cells are interdependent: they can’t function alone.',['interdependent','depend','alone','work together']],
+  ['Multicellular cells are specialized: different cells have different jobs.',['special','different job','different role','different function']],
+  ['Cells form tissues, organs, and organ systems.',['tissue','organ']]]},
+ {id:'virus',t:'Viruses',q:'Describe a virus. Why isn’t it considered completely living?',pts:[
+  ['A virus is a protein coat with DNA or RNA inside.',['protein coat','coat','capsid']],
+  ['It has DNA or RNA.',['dna','rna']],
+  ['It needs a host cell to copy itself.',['host']],
+  ['It’s even simpler than a bacterial cell (not made of cells).',['simple','not a cell','not made of cell','no cell']]]},
+ {id:'tonic',t:'Hypo vs. hypertonic',q:'Explain what happens to an animal cell and a plant cell in a hypotonic solution and in a hypertonic solution.',pts:[
+  ['Hypotonic: less solute outside, so water moves into the cell.',['hypotonic','into','in to','moves in']],
+  ['Animal cells in hypotonic solution swell and can burst.',['burst','swell','lyse']],
+  ['Plant cells don’t burst because of the cell wall.',['wall']],
+  ['Hypertonic: more solute outside, so water moves out of the cell.',['hypertonic','out']],
+  ['Cells in hypertonic solution shrink. Plant vacuoles collapse.',['shrink','collapse','shrivel']]]},
+];
+let expCur=store.get('exp',EXP[0].id);if(!EXP.find(e=>e.id===expCur))expCur=EXP[0].id;
+const X={state:'write',text:'',checks:[],auto:[]};
+function renderExpChips(){const best=store.get('expBest',{});$('#exp-chips').innerHTML=EXP.map(e=>`<button class="chip" data-id="${e.id}" aria-pressed="${e.id===expCur}">${esc(e.t)}${best[e.id]!=null?` <span class="count">${best[e.id]}/${e.pts.length}</span>`:''}</button>`).join('');
+  document.querySelectorAll('#exp-chips .chip').forEach(c=>c.onclick=()=>{expCur=c.dataset.id;store.set('exp',expCur);X.state='write';X.text='';renderExpChips();renderExp();});}
+function renderExp(){const e=EXP.find(x=>x.id===expCur),el=$('#exp-card');
+  if(X.state==='write'){el.innerHTML=`<div class="card"><p class="label">Explain it · from memory</p><p class="prompt">${esc(e.q)}</p><label for="x-ta" style="position:absolute;left:-9999px">Your answer</label><textarea id="x-ta" style="min-height:170px" placeholder="Write everything you know. Don’t look at your notes."></textarea><div class="row"><button class="btn primary" id="x-check">Check my answer</button><span class="kbd">Ctrl + Enter</span></div></div>`;
+    const ta=$('#x-ta');ta.value=X.text;ta.focus();ta.oninput=()=>X.text=ta.value;ta.onkeydown=ev=>{if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){ev.preventDefault();$('#x-check').click();}};
+    $('#x-check').onclick=()=>{if(!X.text.trim()){ta.focus();return;}const low=' '+X.text.toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ')+' ';X.checks=e.pts.map(p=>p[1].some(k=>low.includes(k)));X.auto=[...X.checks];X.state='check';renderExp();};
+  }else{const n=e.pts.length,got=X.checks.filter(Boolean).length;
+    el.innerHTML=`<div class="card"><p class="label">${esc(e.t)}</p><div class="row" style="gap:12px;align-items:baseline"><p class="big" id="x-score">${got}/${n}</p><p class="tip" style="flex:1;min-width:200px">Check off each point you covered. "Found" tags are a guess from keywords, so fix them if they’re wrong.</p></div>
+      <ul class="check">${e.pts.map((p,i)=>`<li><label class="${X.checks[i]?'on':''}"><input type="checkbox" data-i="${i}" ${X.checks[i]?'checked':''}><span>${esc(p[0])}</span>${X.auto[i]?'<span class="auto">found</span>':''}</label></li>`).join('')}</ul>
+      <div class="fb info"><strong>What you wrote</strong><p style="white-space:pre-wrap">${esc(X.text)}</p></div>
+      <div class="row"><button class="btn primary" id="x-save">Save score &amp; next</button><button class="btn" id="x-again">Try this one again</button></div></div>`;
+    el.querySelectorAll('ul.check input').forEach(cb=>cb.onchange=()=>{X.checks[+cb.dataset.i]=cb.checked;cb.parentElement.classList.toggle('on',cb.checked);$('#x-score').textContent=X.checks.filter(Boolean).length+'/'+n;});
+    $('#x-again').onclick=()=>{X.state='write';X.text='';renderExp();};
+    $('#x-save').onclick=()=>{const g=X.checks.filter(Boolean).length,best=store.get('expBest',{});best[e.id]=Math.max(best[e.id]||0,g);store.set('expBest',best);X.checks.forEach(score);
+      const i=EXP.indexOf(e);expCur=EXP[(i+1)%EXP.length].id;store.set('exp',expCur);X.state='write';X.text='';renderExpChips();renderExp();};
+  }}
+
+/* ---------- tabs + boot ---------- */
+const TABS=['mc','vocab','label','cmp','osm','exp'];
+function showTab(t){TABS.forEach(x=>{$('#pane-'+x).hidden=x!==t;$('#tab-'+x).setAttribute('aria-selected',x===t);});store.set('tab',t);
+  const f=document.querySelector('#pane-'+t+' input[type=text]:not([readonly]),#pane-'+t+' textarea');if(f)f.focus();}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;if(!$('#pane-mc').hidden)MC.key(e);});
+MC.start();buildVocab();newLabel();newCompare();newOsm();renderExpChips();renderExp();
+const t0=store.get('tab','mc');showTab(TABS.includes(t0)?t0:'mc');
+</script>
+</body>
+</html>
